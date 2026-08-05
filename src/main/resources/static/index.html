@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Convert dates between the English (AD) and Nepali (Bikram Sambat / BS) calendars.">
+    <title>Date Convertor — AD ⇄ BS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="orbs" aria-hidden="true">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <main class="container">
+
+        <header class="hero">
+            <span class="badge"><span class="badge-dot"></span>REST API · built on ADBS</span>
+            <h1 class="hero-title">Date <span class="grad">Convertor</span></h1>
+            <p class="hero-sub">Convert any date between the <strong>English (Gregorian / AD)</strong> and the
+                <strong>Nepali (Bikram Sambat / BS)</strong> calendars — instantly, in your browser.</p>
+            <div class="range-chip" title="Supported range">
+                <span>BS 1970 – 2100</span><i></i><span>AD 1913-04-13 – 2044-04-12</span>
+            </div>
+        </header>
+
+        <section class="converter">
+
+            <div class="mode-toggle" role="tablist" aria-label="Conversion direction">
+                <button type="button" class="mode-btn is-active" data-mode="bs" role="tab" aria-selected="true">
+                    <span class="mode-main">Nepali → English</span>
+                    <span class="mode-sub">BS → AD</span>
+                </button>
+                <button type="button" class="mode-btn" data-mode="ad" role="tab" aria-selected="false">
+                    <span class="mode-main">English → Nepali</span>
+                    <span class="mode-sub">AD → BS</span>
+                </button>
+            </div>
+
+            <article class="card">
+                <form class="date-form" data-endpoint="/api/convert/bs-to-ad" data-kind="bs" autocomplete="off">
+                    <div class="inputs">
+                        <label class="field">
+                            <input type="number" name="year" min="1970" max="2100" placeholder="YYYY" required>
+                            <span class="field-label">Year</span>
+                        </label>
+                        <label class="field">
+                            <input type="number" name="month" min="1" max="12" placeholder="MM" required>
+                            <span class="field-label">Month</span>
+                        </label>
+                        <label class="field">
+                            <input type="number" name="day" min="1" max="32" placeholder="DD" required>
+                            <span class="field-label">Day</span>
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-ghost today-btn" hidden>Today</button>
+                        <span class="hint" id="format-hint">Format: YYYY/MM/DD</span>
+                        <button type="submit" class="btn"><span class="btn-label">Convert</span><span class="btn-spinner" hidden></span></button>
+                    </div>
+                </form>
+                <div class="result" hidden aria-live="polite">
+                    <p class="result-label" id="result-label">English date (AD)</p>
+                    <p class="result-date js-result-date"></p>
+                    <button type="button" class="copy-btn" data-copy>Copy</button>
+                </div>
+                <p class="error" role="alert" hidden></p>
+            </article>
+
+        </section>
+
+        <section class="api-doc">
+            <h3>REST API</h3>
+            <p>The same conversion is available as a JSON API:</p>
+            <div class="code-block">
+<pre><code>curl -X POST http://localhost:8080/api/convert/ad-to-bs \
+  -H "Content-Type: application/json" \
+  -d '{"date": "2026-08-05"}'
+# {"adDate":"2026-08-05","bsDate":"2083/04/20"}
+
+curl -X POST http://localhost:8080/api/convert/bs-to-ad \
+  -H "Content-Type: application/json" \
+  -d '{"date": "2083/04/20"}'
+# {"bsDate":"2083/04/20","adDate":"2026-08-05"}</code></pre>
+            </div>
+            <p class="api-note">Invalid dates return <code>400</code> with an <code>{"error": "..."}</code> message.</p>
+        </section>
+
+        <footer class="footer">
+            <p>Powered by <a href="https://github.com/dhiraj-var/adbs" target="_blank" rel="noopener">ADBS</a>
+                · Supported range: <strong>BS 1970–2100</strong> / <strong>AD 1913-04-13 to 2044-04-12</strong></p>
+        </footer>
+
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
