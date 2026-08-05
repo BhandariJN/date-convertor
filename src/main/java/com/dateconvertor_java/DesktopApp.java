@@ -42,9 +42,8 @@ public class DesktopApp extends Application {
     private ToggleButton bsBtn;
     private ToggleButton adBtn;
     private ToggleGroup modeGroup;
-    private TextField yearField;
-    private TextField monthField;
-    private TextField dayField;
+    private TextField dateField;
+    private Label dateLabel;
     private Label resultCaption;
     private Label resultValue;
     private Label weekdayValue;
@@ -64,9 +63,9 @@ public class DesktopApp extends Application {
         modeGroup.getToggles().addAll(bsBtn, adBtn);
         bsBtn.setSelected(true);
 
-        yearField = field("YYYY", 4);
-        monthField = field("MM", 2);
-        dayField = field("DD", 2);
+        dateField = field("YYYY/MM/DD", 10);
+        dateLabel = new Label("Nepali Date (BS)");
+        dateLabel.getStyleClass().add("field-label");
 
         LocalDate today = LocalDate.now();
         String todayBs;
@@ -89,10 +88,8 @@ public class DesktopApp extends Application {
         HBox.setHgrow(bsBtn, Priority.ALWAYS);
         HBox.setHgrow(adBtn, Priority.ALWAYS);
 
-        HBox fields = new HBox(10,
-                labeledField("Year", yearField),
-                labeledField("Month", monthField),
-                labeledField("Day", dayField));
+        VBox fields = new VBox(5, dateLabel, dateField);
+        fields.setMaxWidth(220);
 
         todayBtn = new Button("Today");
         todayBtn.getStyleClass().add("today-btn");
@@ -131,14 +128,12 @@ public class DesktopApp extends Application {
 
         Scene scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("/desktop.css").toExternalForm());
-        scene.addEventHandler(KeyEvent.KEY_PRESSED, e -> {
+        scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.ESCAPE) {
-                yearField.clear();
-                monthField.clear();
-                dayField.clear();
+                dateField.clear();
                 hideResult();
                 hideError();
-                yearField.requestFocus();
+                dateField.requestFocus();
                 e.consume();
             } else if (e.isControlDown() && e.getCode() == KeyCode.C) {
                 if (!resultValue.getText().isEmpty()) {
@@ -162,28 +157,13 @@ public class DesktopApp extends Application {
         stage.setMinWidth(440);
         stage.sizeToScene();
         stage.show();
-        yearField.requestFocus();
+        dateField.requestFocus();
     }
 
     private void wireEvents(Button convert) {
-        yearField.focusedProperty().addListener((o, ov, f) -> { if (f) lastField = yearField; });
-        monthField.focusedProperty().addListener((o, ov, f) -> { if (f) lastField = monthField; });
-        dayField.focusedProperty().addListener((o, ov, f) -> { if (f) lastField = dayField; });
+        dateField.focusedProperty().addListener((o, ov, f) -> { if (f) lastField = dateField; });
         modeGroup.selectedToggleProperty().addListener((o, ov, nv) -> updateMode());
-        yearField.textProperty().addListener((o, ov, nv) -> {
-            if (nv.length() == 4) monthField.requestFocus();
-            clampDay();
-        });
-        monthField.textProperty().addListener((o, ov, nv) -> {
-            int v = intOr(nv, 0);
-            if (v > 12) monthField.setText("12");
-            if (nv.length() == 2) dayField.requestFocus();
-            clampDay();
-        });
-        dayField.textProperty().addListener((o, ov, nv) -> clampDay());
-        yearField.setOnAction(e -> convert());
-        monthField.setOnAction(e -> convert());
-        dayField.setOnAction(e -> convert());
+        dateField.setOnAction(e -> convert());
         convert.setOnAction(e -> convert());
         todayBtn.setOnAction(e -> useToday());
         copyBtn.setOnAction(e -> copyResult());
@@ -192,25 +172,27 @@ public class DesktopApp extends Application {
     private void updateMode() {
         boolean bs = modeGroup.getSelectedToggle() == bsBtn;
         todayBtn.setVisible(!bs);
-        formatHint.setText(bs ? "Format: YYYY/MM/DD" : "Format: YYYY-MM-DD");
+        dateLabel.setText(bs ? "Nepali Date (BS)" : "English Date (AD)");
         resultCaption.setText(bs ? "English date (AD)" : "Nepali date (BS)");
         hideResult();
-        clampDay();
     }
 
     private void useToday() {
         modeGroup.selectToggle(adBtn);
         LocalDate now = LocalDate.now();
-        yearField.setText(String.valueOf(now.getYear()));
-        monthField.setText(String.valueOf(now.getMonthValue()));
-        dayField.setText(String.valueOf(now.getDayOfMonth()));
+        dateField.setText(now.getYear() + "-" + pad(now.getMonthValue()) + "-" + pad(now.getDayOfMonth()));
         hideError();
     }
 
     private void convert() {
-        int y = intOr(yearField.getText(), 0);
-        int m = intOr(monthField.getText(), 0);
-        int d = intOr(dayField.getText(), 0);
+        String[] parts = dateField.getText().trim().split("[-/]");
+        if (parts.length != 3) {
+            showError("Enter the date as YYYY/MM/DD.");
+            return;
+        }
+        int y = intOr(parts[0], 0);
+        int m = intOr(parts[1], 0);
+        int d = intOr(parts[2], 0);
         boolean toAd = modeGroup.getSelectedToggle() == bsBtn;
 
         if (toAd && (y < 1970 || y > 2100)) { showError("Year must be between 1970 and 2100."); return; }
@@ -266,13 +248,6 @@ public class DesktopApp extends Application {
         return 31;
     }
 
-    private void clampDay() {
-        int d = intOr(dayField.getText(), 0);
-        if (d == 0) return;
-        int max = maxDay(intOr(yearField.getText(), 0), intOr(monthField.getText(), 0));
-        if (d > max) dayField.setText(String.valueOf(max));
-    }
-
     private void showResult() {
         resultBox.setVisible(true);
         resultBox.setManaged(true);
@@ -313,18 +288,31 @@ public class DesktopApp extends Application {
     private TextField field(String prompt, int maxLen) {
         TextField f = new TextField();
         f.setPromptText(prompt);
-        f.setPrefWidth(78);
+        f.setPrefWidth(190);
         f.setTextFormatter(new TextFormatter<>(c -> {
-            String text = c.getControlNewText();
-            return text.matches("\\d{0," + maxLen + "}") ? c : null;
+            String newText = c.getControlNewText();
+            String digits = newText.replaceAll("[^0-9]", "");
+            if (digits.length() > 8) digits = digits.substring(0, 8);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < digits.length(); i++) {
+                if (i == 4 || i == 6) sb.append('/');
+                sb.append(digits.charAt(i));
+            }
+            String formatted = sb.toString();
+            int digitsBeforeCaret = 0;
+            int caretPos = Math.min(c.getCaretPosition(), newText.length());
+            for (int i = 0; i < caretPos; i++) {
+                if (Character.isDigit(newText.charAt(i))) digitsBeforeCaret++;
+            }
+            int caret = digitsBeforeCaret + (digitsBeforeCaret > 4 ? 1 : 0) + (digitsBeforeCaret > 6 ? 1 : 0);
+            TextFormatter.Change change = c.clone();
+            change.setRange(0, c.getControlText().length());
+            change.setText(formatted);
+            change.setCaretPosition(caret);
+            change.setAnchor(caret);
+            return change;
         }));
         return f;
-    }
-
-    private VBox labeledField(String name, TextField field) {
-        Label label = new Label(name);
-        label.getStyleClass().add("field-label");
-        return new VBox(5, label, field);
     }
 
     private static int intOr(String s, int def) {
