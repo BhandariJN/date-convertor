@@ -1,7 +1,5 @@
 package com.dateconvertor_java;
 
-import com.nepalidate.ADBS.NepaliDateConverter.AdBs;
-import com.nepalidate.ADBS.NepaliDateConverter.NDC;
 import javafx.animation.PauseTransition;
 import javafx.application.Application;
 import javafx.geometry.Insets;
@@ -36,9 +34,6 @@ import java.util.Locale;
  */
 public class DesktopApp extends Application {
 
-    private final NDC ndc = new NDC();
-    private final AdBs adBs = new AdBs();
-
     private ToggleButton bsBtn;
     private ToggleButton adBtn;
     private ToggleGroup modeGroup;
@@ -53,7 +48,6 @@ public class DesktopApp extends Application {
     private Button copyBtn;
     private VBox resultBox;
     private TextField lastField;
-    private Stage stage;
 
     @Override
     public void start(Stage stage) {
@@ -70,7 +64,7 @@ public class DesktopApp extends Application {
         LocalDate today = LocalDate.now();
         String todayBs;
         try {
-            todayBs = ndc.adToBs(today.getYear() + "-" + pad(today.getMonthValue()) + "-" + pad(today.getDayOfMonth()));
+            todayBs = NepaliDateConverter.adToBs(today.getYear() + "-" + pad(today.getMonthValue()) + "-" + pad(today.getDayOfMonth()));
         } catch (RuntimeException e) {
             todayBs = "";
         }
@@ -88,7 +82,7 @@ public class DesktopApp extends Application {
         HBox.setHgrow(bsBtn, Priority.ALWAYS);
         HBox.setHgrow(adBtn, Priority.ALWAYS);
 
-        VBox fields = new VBox(5, dateLabel, dateField);
+        VBox fields = new VBox(3, dateLabel, dateField);
         fields.setMaxWidth(220);
 
         todayBtn = new Button("Today");
@@ -100,7 +94,7 @@ public class DesktopApp extends Application {
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox actions = new HBox(10, todayBtn, formatHint, spacer, convert);
+        HBox actions = new HBox(6, todayBtn, formatHint, spacer, convert);
         actions.setAlignment(Pos.CENTER_LEFT);
 
         resultCaption = new Label("English date (AD)");
@@ -120,13 +114,17 @@ public class DesktopApp extends Application {
         error.setWrapText(true);
         hideError();
 
-        VBox root = new VBox(14, title, subtitle, todayRef, toggleRow, fields, actions, resultBox, error);
-        root.setPadding(new Insets(26));
+        VBox root = new VBox(5, title, subtitle, todayRef, toggleRow, fields, actions, resultBox, error);
+        root.setPadding(new Insets(10));
+        root.setPrefSize(350, 350);
+        root.setMinSize(350, 350);
+        root.setMaxSize(350, 350);
         root.getStyleClass().add("root");
 
         wireEvents(convert);
+        updateMode();
 
-        Scene scene = new Scene(root);
+        Scene scene = new Scene(root, 350, 350);
         scene.getStylesheets().add(getClass().getResource("/desktop.css").toExternalForm());
         scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.ESCAPE) {
@@ -150,12 +148,11 @@ public class DesktopApp extends Application {
         });
 
         stage.setTitle("Date Convertor");
-        this.stage = stage;
         stage.getIcons().add(new Image(getClass().getResourceAsStream("/icon.png")));
         stage.setScene(scene);
-        stage.setResizable(true);
-        stage.setMinWidth(440);
-        stage.sizeToScene();
+        stage.setResizable(false);
+        stage.setWidth(350);
+        stage.setHeight(350);
         stage.show();
         dateField.requestFocus();
     }
@@ -172,6 +169,7 @@ public class DesktopApp extends Application {
     private void updateMode() {
         boolean bs = modeGroup.getSelectedToggle() == bsBtn;
         todayBtn.setVisible(!bs);
+        todayBtn.setManaged(!bs);
         dateLabel.setText(bs ? "Nepali Date (BS)" : "English Date (AD)");
         resultCaption.setText(bs ? "English date (AD)" : "Nepali date (BS)");
         hideResult();
@@ -205,10 +203,10 @@ public class DesktopApp extends Application {
             String result;
             LocalDate adDate;
             if (toAd) {
-                result = ndc.bsToAd(pad(y) + "/" + pad(m) + "/" + pad(d));
+                result = NepaliDateConverter.bsToAd(pad(y) + "/" + pad(m) + "/" + pad(d));
                 adDate = LocalDate.parse(result);
             } else {
-                result = ndc.adToBs(pad(y) + "-" + pad(m) + "-" + pad(d));
+                result = NepaliDateConverter.adToBs(pad(y) + "-" + pad(m) + "-" + pad(d));
                 adDate = LocalDate.of(y, m, d);
             }
             resultValue.setText(result);
@@ -238,20 +236,12 @@ public class DesktopApp extends Application {
                 return 31;
             }
         }
-        for (int d = 32; d >= 1; d--) {
-            try {
-                if (adBs.validateBsDate(y, m, d)) return d;
-            } catch (RuntimeException ignored) {
-                // invalid day for this month, try lower
-            }
-        }
-        return 31;
+        return NepaliDateConverter.daysInMonth(y, m);
     }
 
     private void showResult() {
         resultBox.setVisible(true);
         resultBox.setManaged(true);
-        stage.sizeToScene();
     }
 
     private void hideResult() {
@@ -264,7 +254,6 @@ public class DesktopApp extends Application {
         error.setText(message);
         error.setVisible(true);
         error.setManaged(true);
-        stage.sizeToScene();
     }
 
     private void hideError() {

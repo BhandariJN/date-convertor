@@ -9,12 +9,6 @@ import javafx.application.Application;
  */
 public class DesktopMain {
 
-    static {
-        // WebView's Prism GPU pipeline fails on machines without proper GPU
-        // drivers (RTImage NPE). Software rendering is stable everywhere.
-        System.setProperty("prism.order", "sw");
-    }
-
     public static void main(String[] args) {
         Application.launch(DesktopApp.class, args);
     }
